@@ -1,0 +1,193 @@
+
+from openpyxl import load_workbook
+import docx 
+from docx.shared import Cm
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
+
+
+def _set_cell_background(cell, fill, color=None, val=None):
+    """
+    @fill: Specifies the color to be used for the background
+    @color: Specifies the color to be used for any foreground
+    pattern specified with the val attribute
+    @val: Specifies the pattern to be used to lay the pattern
+    color over the background color.
+    """
+    from docx.oxml.shared import qn  # feel free to move these out
+    from docx.oxml.xmlchemy import OxmlElement
+
+    cell_properties = cell._element.tcPr
+    try:
+        cell_shading = cell_properties.xpath('w:shd')[0]  # in case there's already shading
+    except IndexError:
+        cell_shading = OxmlElement('w:shd') # add new w:shd element to it
+    if fill:
+        cell_shading.set(qn('w:fill'), fill)  # set fill property, respecting namespace
+    if color:
+        pass # TODO
+    if val:
+        pass # TODO
+    cell_properties.append(cell_shading)  # finally extend cell props with shading element
+    
+
+def theSize(s):
+    s=sizeValue
+    global _width0, _width1,_width2, _height
+    if s=="size 3 (16.5*4.5)":
+       _width0=2.24
+       _width1=9.08
+       _width2=5.66
+       _height=1.25
+    elif s=="size 2 (9.5*3)":
+        _width0=2
+        _width1=4
+        _width2=3
+        _height=0.88
+    else :
+        _width0=2.5
+        _width1=12
+        _width2=6
+        _height=1.45
+        
+    for cell in menuTable.columns[0].cells:
+        cell.width = Cm(_width0)
+
+        
+    for cell in menuTable.columns[1].cells:
+        cell.width = Cm( _width1)
+      
+        
+    for cell in menuTable.columns[2].cells:
+         cell.width = Cm( _width2)
+       
+    for row in menuTable.rows:
+        row.height = Cm( _height)
+
+def theColor(c):
+    c=colours
+    _set_cell_background(menuTable.columns[2].cells[0], '#F2F2F2')
+    if c =="HAM" or c=="LASA" or c=="Hz":
+        devideCell=1
+    elif c =="HAM Hz" or c=="LASA HAM" or c=="LAZA Hz":
+        devideCell=2
+    else:
+        devideCell=3
+        
+          
+    if devideCell==1:
+        for i in range(1,4):
+            menuTable.cell(i-1, 0).merge(menuTable.cell(i, 0))
+            
+        if c =="HAM":
+           
+            shading_elm = parse_xml(r'<w:shd {} w:fill="FF0000"/>'.format(nsdecls('w')))
+            menuTable.cell(0,0).text='HAM'
+      
+        elif c =="LASA":
+            shading_elm = parse_xml(r'<w:shd {} w:fill="008000"/>'.format(nsdecls('w')))
+            menuTable.cell(0,0).text='LASA'
+             
+        elif c =="Hz":
+            shading_elm = parse_xml(r'<w:shd {} w:fill="FFFF00"/>'.format(nsdecls('w')))
+            menuTable.cell(0,0).text='Hz'
+                
+        menuTable.cell(0, 0)._tc.get_or_add_tcPr().append(shading_elm)
+                
+            
+    elif devideCell==2: 
+        menuTable.cell(0, 0).merge(menuTable.cell(1, 0))
+        menuTable.cell(2, 0).merge(menuTable.cell(3, 0))
+        if c =="HAM Hz":
+            _set_cell_background(menuTable.rows[0].cells[0], 'FF0000')
+            _set_cell_background(menuTable.columns[0].cells[2], 'FFFF00')
+            menuTable.cell(1,0).text='HAM'
+            menuTable.cell(2,0).text='Hz'
+      #not yet 
+        elif c=="LASA HAM":
+            _set_cell_background(menuTable.rows[0].cells[0], 'FF0000')
+            _set_cell_background(menuTable.columns[0].cells[2], '008000')   
+            menuTable.cell(1,0).text='HAM'
+            menuTable.cell(2,0).text='LASA'                 
+      
+        elif c=="LAZA Hz":
+            _set_cell_background(menuTable.rows[0].cells[0], 'FFFF00')
+            _set_cell_background(menuTable.columns[0].cells[2], '008000')
+            menuTable.cell(1,0).text='Hz'
+            menuTable.cell(2,0).text='LASA' 
+    else :
+        menuTable.cell(0, 0).merge(menuTable.cell(1, 0))
+        _set_cell_background(menuTable.rows[0].cells[0], 'FF0000')
+        _set_cell_background(menuTable.columns[0].cells[2], '008000')
+        _set_cell_background(menuTable.columns[0].cells[3], 'FFFF00')
+        menuTable.cell(1,0).text='HAM'
+        menuTable.cell(2,0).text='LASA'
+        menuTable.cell(3,0).text='Hz'
+    
+    
+    
+    
+   
+
+doc=docx.Document()
+
+path = input("Enter THE FULL PAAAATH of the EXCEL: ")
+rowLength = input("Enter The Length: ")
+rowLength=int(rowLength)
+savePath=input("Enter save location + filename.docx: ")
+
+
+ws=load_workbook(path)
+ws=ws.active
+
+
+rowNum=2
+number=str(rowNum)
+
+
+# rows
+for x in range(rowLength-1, 0,-1):
+   
+    
+        
+       
+        #fetch the iniformation
+        gName=ws['B'+number].value
+        
+        colours=ws['C'+number].value
+        
+        tName=ws['D'+number].value
+        
+        sizeValue=ws['E'+number].value
+        
+        
+        #create the table
+        menuTable = doc.add_table(rows=4, cols=3)
+        menuTable.style="Table Grid"
+        
+        #detect the size
+        theSize(sizeValue)
+        
+        #the color
+        theColor(colours)
+        
+        #write On cell 
+        menuTable.cell(0,2).text='Expiry Date'
+        menuTable.cell(0,1).text=gName
+        if tName :
+            menuTable.cell(1,1).text=tName+'®'
+            
+      # fix margins 
+        sections = doc.sections
+        for section in sections:
+            section.left_margin = Cm(1.27)
+            section.right_margin = Cm(1.27)
+            
+        doc.add_paragraph(' ')
+          
+        rowNum+=1
+        number=str(rowNum)
+     
+
+doc.save(savePath)
+      
